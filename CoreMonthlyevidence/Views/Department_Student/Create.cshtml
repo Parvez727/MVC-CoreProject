@@ -1,0 +1,252 @@
+﻿<script src="~/lib/jquery/dist/jquery.js"></script>
+<h2>Create/Update</h2>
+@using(Html.BeginForm())
+ {
+    @Html.AntiForgeryToken()
+
+
+<div class="form-horizontal">
+    <h4>Department_Student</h4>
+    <hr />
+    <div class="row">
+        <div class="col-sm-4">
+            <h2>Department Table</h2>
+            <div class="form-group">
+                <label for="DepartmentId">Department ID</label>
+                <input id="DepartmentId" name="DepartmentId" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="DepartmentName">Department Name</label>
+                <input id="DepartmentName" name="DepartmentName" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="DepartmentLocation">Department Location</label>
+                <input id="DepartmentLocation" name="DepartmentLocation" class="form-control" />
+            </div>
+        </div>
+
+
+
+        <div class="col-sm-8">
+            <div id="students"></div>
+            <h2>Students Table</h2>
+            <div class="form-group">
+                <label for="StudentId">Student ID</label>
+                <input id="StudentId" name="StudentId" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="StudentName">Student Name</label>
+                <input id="StudentName" name="StudentName" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="Gender">Gender</label>
+                <input id="Gender" name="Gender" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="date">Birth of Date</label>
+                <input type="date" id="date" name="date" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label for="picture">Picture</label>
+                <input type="file" id="picture" name="picture" />
+            </div>
+            <button type="button" id="add" class="btn btn-primary">Add</button>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <div class="col-md-offset-2 col-md-10">
+            <button type='button' id="save" class="btn btn-lg btn-default btn-primary">Save</button>
+            <button type='button' id="deleteall" class="btn btn-lg btn-default btn-primary">Remove</button>
+        </div>
+
+
+    </div>
+
+
+</div>
+
+ }
+
+<dv>
+    @Html.ActionLink("Back to List", "Create")
+</dv>
+
+<script>
+    $(document).ready(function () {
+        let searchParams = new URLSearchParams(window.location.search)
+        if (searchParams.has('sid')) {
+            $("#DepartmentId").val(searchParams.get('sid'));
+            DepartmentChanges();
+        }
+
+        var act = [];
+        var index = -1;
+        $("#DepartmentId").keyup(function () {
+            DepartmentChanges();
+        });
+
+        $("#addnew").click(function () {
+            $("#DepartmentId").val("");
+            DepartmentChanges();
+        });
+
+        $("#StudentId").keyup(function () {
+            getAjax('/Department_Student/GetStudentBystudentid/' + $("#StudentId").val(), function (r) {
+                if (r != "") {
+                    $("#StudentName").val(r[0].studentname);
+                    $("#Gender").val(r[0].gender);
+
+                }
+                else {
+                    $("#StudentName").val("");
+                    $("#Gender").val("");
+                }
+               
+            });
+        });
+    
+
+        function DepartmentChanges() {
+            getAjax('/Department_Student/GetDepartment/' + $("#DepartmentId").val(), function (r) {
+                if (r != "") {
+                    $("#DepartmentName").val(r[0].departmentname);
+                    $("#DepartmentLocation").val(r[0].departmentlocation);
+
+                }
+                else {
+                    $("#DepartmentName").val("");
+                    $("#DepartmentLocation").val("");
+
+                }
+                showStudent();
+            });
+
+        }
+
+        function showStudent() {
+            getAjax('/Department_Student/GetStudent/' + $("#DepartmentId").val(), function (data) {
+                act = data;
+                students();
+            });
+        }
+
+        function students() {
+            var j = 0;
+            var a = "<table class='table'><tr><th>Student Id</th><th>Student Name</th><th>Gender</th><th>Birth of Date</th><th>Picture</th><th></th></tr>";
+            for (d in act) {
+                today = ConvertDate(act[d].date);
+                a += `<tr><td>${act[d].studentid}</td><td>${act[d].studentname}</td><td>${act[d].gender}</td><td>${today}</td><td><img src='/Uploads/${act[d].picture}' width='100'/></td><td><button type='button' onclick="edit1('${act[d].studentid}','${act[d].studentname}','${act[d].gender}',${j},'${today}','${act[d].picture}')">Edit</button><button type='button' onclick="remove(${j})">Remove</button></td></tr>`;
+                j++;
+            }
+            a += "</table>";
+            $("#students").html(a);
+
+        }
+
+        $("#add").click(function () {
+            var dt = $("#date").val();
+            if ($("#add").html() == "Add") {
+                var files = $("#picture").get(0).files;
+                var fname = files[0].name
+                var fileData = new FormData();
+                fileData.append(files[0].name, files[0]);
+                $.ajax({
+                    url: '/Department_Student/UploadFiles',
+                    type: "POST",
+                    contentType: false,
+                    processData: false,
+                    data: fileData,
+                    success: function (result) {
+                        act.push({ "studentid": $("#StudentId").val(), "studentname": $("#StudentName").val(), "gender": $("#Gender").val(), "date": dt, "picture": fname });
+                        students();
+
+                    },
+
+                });
+            }
+            else {
+                v = { "studentid": $("#StudentId").val(), "studentname": $("#StudentName").val(), "gender": $("#Gender").val(), "date": dt, "picture": $("#picture").val().split('\\').pop() };
+                act[index] = v;
+                students();
+                $("#add").html("Add");
+            }
+
+
+        });
+
+
+        $("#save").click(function () {
+            var i = 0;
+            getAjax('/Department_Student/DeleteAll/' + $("#DepartmentId").val(), function (data) {
+                url = `departmentid=${$("#DepartmentId").val()}&departmentname=${$("#DepartmentName").val()}&departmentlocation=${$("#DepartmentLocation").val()}`;
+
+                getAjax('/Department_Student/InsertDepartment?' + url, function (data) {
+                    for (d in act) {
+                        url1 = `studentid=${act[d].studentid}&studentname=${act[d].studentname}&departmentid=${$("#DepartmentId").val()}&gender=${act[d].gender}&date=${act[d].date}&picture=${act[d].picture}`;
+
+                        getAjax('/Department_Student/InsertStudent?' + url1, function (data) {
+                            i++;
+                            if (i == act.length) {
+                                act = [];
+                                students();
+                                window.location = "/Department_Student/main";
+                            }
+
+                        });
+
+                    }
+
+                });
+            });
+
+
+        });
+
+
+        $("#deleteall").click(function () {
+            getAjax('/Department_Student/DeleteAll/' + $("#DepartmentId").val(), function (d) {
+                window.location = '/Department_Student/main';
+            });
+        });
+        remove = function (j) {
+            act.splice(j, 1);
+            students();
+        }
+        edit1 = function (a, b, c, d, e,f, g) {
+            $("#StudentId").val(a);
+            $("#StudentName").val(b);
+            $("#Gender").val(c);
+
+            index = d;
+            $("#date").val(e);
+            $("#add").html("Edit");
+        }
+
+        function ConvertDate(f) {
+            value = new Date(f);
+            var dd = String(value.getDate()).padStart(2, '0');
+            var mm = String(value.getMonth() + 1).padStart(2, '0');
+            var yyyy = value.getFullYear();
+            today = yyyy + "-" + mm + "-" + dd;
+            return today;
+        }
+        function getAjax(url, callback) {
+            $.ajax({
+                dataType: "json",
+                url: url,
+                success: callback
+            });
+
+        }
+
+
+    })
+    
+</script>

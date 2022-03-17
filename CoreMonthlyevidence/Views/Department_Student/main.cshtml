@@ -1,0 +1,35 @@
+﻿@model IList<CoreMonthlyevidence.Models.ItemCount>
+@{
+    ViewBag.Title = "Create";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+}
+@*<script src="~/Scripts/jquery-3.4.1.min.js"></script>*@
+<script src="~/lib/jquery/dist/jquery.js"></script>
+<h2>Show All Students</h2>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3">
+            <div class="card">
+                <div class="card-header">
+                    Department and Total Students
+                </div>
+                @foreach(var a in Model)
+                 {
+                    <div class="card-body">
+                        @Html.ActionLink(a.departmentname + "-(Students: " + a.count + ")","main", new {sid = a.departmentid})
+                    </div>
+                 }
+                <div class="card-footer">
+                    <button type="button" class="btn btn-primary" id="addnew">Add New</button>
+                </div>
+
+            </div>
+        </div>
+        <div class="col-sm-9">
+            <partial name="Create" />
+        </div>
+
+    </div>
+
+</div>
